@@ -109,7 +109,7 @@ class Remote:
 
 	def turnOn(self, bluetooth_mac, interface=None, repeat=3):
 		""" Turn on camera with mac 'bluetooth_mac' via bluetooth LE.
-			This method requires pexpect.
+			This method requires pexpect and gatttool.
 			
 			Returns False if camera is not turned on afterwards, otherwise True
 		"""
