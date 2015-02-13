@@ -243,20 +243,6 @@ class Remote:
 
 		return True
 
-	# def logout(self):
-	# 	if self.token is None:
-	# 		print('logout failed: No token available.')
-	# 		return False
-
-	# 	if self.verbose:
-	# 		print('logging out...')
-
-	# 	response = self.sendRequest('https://'+self.camera_ip+'/auth/logout?token='+self.token) # TODO Check
-
-	# 	if response is None:
-	# 		return False
-	# 	return True
-
 	def sendHeartbeat(self, loop=0):
 		while True:
 
@@ -278,22 +264,6 @@ class Remote:
 
 		self.stop_heartbeat = False
 		return True
-
-	# def loadWifiConfiguration(self):
-	# 	if self.verbose:
-	# 		print('Trying to get camera settings...')
-
-	# 	response = self.sendRequest('https://'+self.camera_ip+'/settings/wifi/WFCONF?token='+self.token)
-
-	# 	if response is None:
-	# 		return False
-
-	# 	self.wfconf = json.load(self.u8reader(response))["wfconf"]
-
-	# 	if self.verbose:
-	# 		print('JSON: ', self.camera_settings)
-
-	# 	return True
 
 	def connect(self, pin="0000",token=None):
 		self.pin = pin

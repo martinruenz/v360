@@ -9,17 +9,6 @@
 #endif
 
 namespace v360 {
-/*
-typename<T>
-struct ReturnValue {
-    ReturnValue(const T& data, bool valid){
-        value = data;
-        isValid = valid;
-    }
-    T value;
-    bool isValid=false;
-};*/
-
 
 class Variant{
 public:
@@ -149,12 +138,8 @@ public:
         }
 
         pDict = PyModule_GetDict(pModule); // borrowed
-        //pFunc = PyDict_GetItemString(pDict, "Driver"); // borrowed
         pClass = PyDict_GetItemString(pDict, "Remote"); // borrowed
-
-        //if (PyCallable_Check(pClass)){
         pInstance = PyObject_CallObject(pClass, NULL);
-        //}
     }
     ~Remote(){
         
@@ -162,6 +147,7 @@ public:
         Py_DECREF(pName);
         Py_DECREF(pClass);
         Py_DECREF(pDict);
+		Py_XDECREF(pInstance);
 
         Py_Finalize();
     }
@@ -179,16 +165,114 @@ public:
         return result;
     }
 
-    inline Variant connect(const std::string& pin="0000", const std::string& token=""){
-        Variant result = convertResult(PyObject_CallMethod(pInstance, (char*)"connect", (char*)"(ss)", pin.c_str(), token.c_str()));
-        if(!result.isBool()) return false; 
-        return result.toBool();
-    }
+	inline bool returnBool(PyObject* pValue){
+		Variant result = convertResult(pValue);
+		if (!result.isBool()) return false;
+		return result.toBool();
+	}
 
     inline Variant getName(){
-        PyObject* pValue = PyObject_CallMethod(pInstance, (char*)"getName", NULL);
-        return convertResult(pValue);
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getName", NULL));
     }
+	
+	inline bool turnOn(const std::string& bluetooth_mac, const std::string& interface = "", int repeat = 3){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"turnOn", (char*)"(ssi)", bluetooth_mac.c_str(), interface.c_str(), repeat));
+	}
+
+	inline void turnOff(){
+		Py_XDECREF(PyObject_CallMethod(pInstance, (char*)"turnOff", NULL));
+	}
+	
+	inline bool connect(const std::string& pin = "0000", const std::string& token = ""){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"connect", (char*)"(ss)", pin.c_str(), token.c_str()));
+	}
+
+	inline void disconnect(){
+		Py_XDECREF(PyObject_CallMethod(pInstance, (char*)"disconnect", NULL));
+	}
+
+	inline bool setVideoResolution(const std::string& resolution){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setVideoResolution", (char*)"(s)", resolution.c_str()));
+	}
+
+	inline bool setVideoWhitebalance(const std::string& whitebalance){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setVideoWhitebalance", (char*)"(s)", whitebalance.c_str()));
+	}
+
+	inline bool setVideoEffect(const std::string& effect){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setVideoEffect", (char*)"(s)", effect.c_str()));
+	}
+
+	inline bool setMode(const std::string& mode){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setMode", (char*)"(s)", mode.c_str()));
+	}
+
+	inline bool setAutoRotation(bool on){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setAutoRotation", (char*)"(b)", on)); // TODO: Check (b), otherwise (i)
+	}
+
+	inline bool startVideo(){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"startVideo", NULL));
+	}
+
+	inline bool stopVideo(){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"stopVideo", NULL));
+	}
+
+	/* TODO:
+	
+		def getName(self):
+		return self.returnCached(self.camera_info, ("caminf", "name"), False)
+
+	def getBattery(self):
+		return self.returnCached(self.camera_status, "batlev")
+
+	def getHdmiConnected(self):
+		return self.returnCached(self.camera_status, "hdmist")
+
+	def getPowerConnected(self):
+		return self.returnCached(self.camera_status, "powsrc")
+
+	def getVideoResolution(self):
+		return self.returnCached(self.video_settings, "vdores")
+
+	def getVideoEffect(self):
+		return self.returnCached(self.video_settings, "vdocef")
+
+	def getVideoWhitebalance(self):
+		return self.returnCached(self.video_settings, "vdowbl")
+
+	def getVideoTimelapseInterval(self):
+		return self.returnCached(self.video_settings, ("vdotlp", "interval"))
+
+	def getVideoResolution(self):
+		return self.returnCached(self.video_settings, "vdores")
+
+	def getPhotoBurstRate(self):
+		return self.returnCached(self.photo_settings, ("picbur", "rate"))
+
+	def getPhotoEffect(self):
+		return self.returnCached(self.photo_settings, "piccef")
+
+	def getPhotoExposure(self):
+		return self.returnCached(self.photo_settings, "picexp")		
+
+	def getPhotoResolution(self):
+		return self.returnCached(self.photo_settings, "picres")
+
+	def getPhotoTimelapseInterval(self):
+		return self.returnCached(self.photo_settings, ("pictlp", "interval"))				
+
+	def getPhotoWhitebalance(self):
+		return self.returnCached(self.photo_settings, "picwbl")	
+
+	def getPhotoPictwbInterval(self): # TODO: unknown setting, rename 
+		return self.returnCached(self.photo_settings, ("pictwb", "interval"))
+
+	def getPhotoPictwbRate(self): # TODO: unknown setting, rename
+		return self.returnCached(self.photo_settings, ("pictwb", "rate"))	
+
+	*/
 
 };
 
