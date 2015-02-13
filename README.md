@@ -27,3 +27,7 @@ Open a terminal and execute the following commands (Ubuntu):
 Open a terminal and execute the following commands (Ubuntu):
 
     $ ./run_camera.py
+
+Work in progress
+----------------
+While the python version of the remote control is already working, the C++ wrapper is still in progress.
