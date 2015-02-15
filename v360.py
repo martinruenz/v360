@@ -22,7 +22,6 @@ class CachedJSON:
 		return True
 
 	def update(self):
-
 		if self.remote.verbose:
 			print('Trying to download', self.name, '...')
 
@@ -433,9 +432,6 @@ class Remote:
 
 	def getVideoTimelapseInterval(self):
 		return self.returnCached(self.video_settings, ("vdotlp", "interval"))
-
-	def getVideoResolution(self):
-		return self.returnCached(self.video_settings, "vdores")
 
 	def getPhotoBurstRate(self):
 		return self.returnCached(self.photo_settings, ("picbur", "rate"))
