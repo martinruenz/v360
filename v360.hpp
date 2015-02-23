@@ -9,17 +9,6 @@
 #endif
 
 namespace v360 {
-/*
-typename<T>
-struct ReturnValue {
-    ReturnValue(const T& data, bool valid){
-        value = data;
-        isValid = valid;
-    }
-    T value;
-    bool isValid=false;
-};*/
-
 
 class Variant{
 public:
@@ -56,6 +45,10 @@ public:
         *(std::string*)data.raw_data = value;
         type = STRING;
     }
+	Variant(const char* value, size_t length = -1){
+		data.raw_data = new std::string(value, length != -1 ? length : strnlen(value, 100000000));
+		type = STRING;
+	}
     ~Variant(){
         deleteRaw();
     }
@@ -95,20 +88,21 @@ public:
     const std::string& toString() const { return *(std::string*)data.raw_data; }
 
     std::ostream& outputToStream(std::ostream& ostr) const {
-        //assert(type != UNSET);
-        if(type == DOUBLE){
-            return ostr << data.double_data;
-        } else if(type == BOOL){
-            if(data.bool_data)
-                return ostr << "true";
-            else
-                return ostr << "false";
-        } else if(type == INT){
-            return ostr << data.int_data;
-        }else if(type == STRING){
-            return ostr << *(std::string*)data.raw_data;
-        }
-        return ostr;
+        
+		switch (type){
+		case DOUBLE:
+			return ostr << data.double_data;
+		case BOOL:
+			if (data.bool_data) return ostr << "true";
+			else				return ostr << "false";
+		case INT:
+			return ostr << data.int_data;
+		case STRING:
+			return ostr << *(std::string*)data.raw_data;
+		case UNSET:
+			return ostr << "(unset)";
+		}
+		return ostr << "(unknown)";
     }
 
 private:
@@ -149,12 +143,8 @@ public:
         }
 
         pDict = PyModule_GetDict(pModule); // borrowed
-        //pFunc = PyDict_GetItemString(pDict, "Driver"); // borrowed
         pClass = PyDict_GetItemString(pDict, "Remote"); // borrowed
-
-        //if (PyCallable_Check(pClass)){
         pInstance = PyObject_CallObject(pClass, NULL);
-        //}
     }
     ~Remote(){
         
@@ -162,6 +152,7 @@ public:
         Py_DECREF(pName);
         Py_DECREF(pClass);
         Py_DECREF(pDict);
+		Py_XDECREF(pInstance);
 
         Py_Finalize();
     }
@@ -172,6 +163,11 @@ public:
             if(PyFloat_Check(pValue)) result = Variant(PyFloat_AsDouble(pValue));
             if(PyBool_Check(pValue)) result = Variant((bool)(PyLong_AsLong(pValue) != 0));
             if(PyLong_CheckExact(pValue)) result = Variant((int)PyLong_AsLong(pValue));
+			if(PyUnicode_Check(pValue)) {
+				PyObject* ascii = PyUnicode_AsASCIIString(pValue);
+				result = Variant(PyBytes_AsString(ascii), PyBytes_Size(ascii));
+				Py_DECREF(ascii);
+			}
             Py_DECREF(pValue);
         }else{
             PyErr_Print();
@@ -179,17 +175,118 @@ public:
         return result;
     }
 
-    inline Variant connect(const std::string& pin="0000", const std::string& token=""){
-        Variant result = convertResult(PyObject_CallMethod(pInstance, (char*)"connect", (char*)"(ss)", pin.c_str(), token.c_str()));
-        if(!result.isBool()) return false; 
-        return result.toBool();
-    }
+	inline bool returnBool(PyObject* pValue){
+		Variant result = convertResult(pValue);
+		if (!result.isBool()) return false;
+		return result.toBool();
+	}
+	
+#ifdef unix
+	inline bool turnOn(const std::string& bluetooth_mac, const std::string& interface = "", int repeat = 3){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"turnOn", (char*)"(ssi)", bluetooth_mac.c_str(), interface.c_str(), repeat));
+	}
+#endif
 
-    inline Variant getName(){
-        PyObject* pValue = PyObject_CallMethod(pInstance, (char*)"getName", NULL);
-        return convertResult(pValue);
-    }
+	inline void turnOff(){
+		Py_XDECREF(PyObject_CallMethod(pInstance, (char*)"turnOff", NULL));
+	}
+	
+	inline bool connect(const std::string& pin = "0000", const std::string& token = ""){
+		if (token == "") return returnBool(PyObject_CallMethod(pInstance, (char*)"connect", (char*)"(s)", pin.c_str()));
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"connect", (char*)"(ss)", pin.c_str(), token.c_str()));
+	}
 
+	inline void disconnect(){
+		Py_XDECREF(PyObject_CallMethod(pInstance, (char*)"disconnect", NULL));
+	}
+
+	inline void setVerbose(bool verbose){
+		PyObject_SetAttrString(pClass, (char*)"verbose", verbose ? Py_True : Py_False);
+	}
+
+	inline bool setVideoResolution(const std::string& resolution){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setVideoResolution", (char*)"(s)", resolution.c_str()));
+	}
+
+	inline bool setVideoWhitebalance(const std::string& whitebalance){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setVideoWhitebalance", (char*)"(s)", whitebalance.c_str()));
+	}
+
+	inline bool setVideoEffect(const std::string& effect){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setVideoEffect", (char*)"(s)", effect.c_str()));
+	}
+
+	inline bool setMode(const std::string& mode){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setMode", (char*)"(s)", mode.c_str()));
+	}
+
+	inline bool setAutoRotation(bool on){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"setAutoRotation", (char*)"(b)", on)); // TODO: Check (b), otherwise (i)
+	}
+
+	inline bool startVideo(){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"startVideo", NULL));
+	}
+
+	inline bool stopVideo(){
+		return returnBool(PyObject_CallMethod(pInstance, (char*)"stopVideo", NULL));
+	}
+
+	inline Variant getName(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getName", NULL));
+	}
+
+	inline Variant getBattery(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getBattery", NULL));
+	}
+
+	inline Variant getHdmiConnected(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getHdmiConnected", NULL));
+	}
+
+	inline Variant getPowerConnected(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getPowerConnected", NULL));
+	}
+
+	inline Variant getVideoResolution(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getVideoResolution", NULL));
+	}
+
+	inline Variant getVideoEffect(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getVideoEffect", NULL));
+	}
+
+	inline Variant getVideoWhitebalance(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getVideoWhitebalance", NULL));
+	}
+
+	inline Variant getVideoTimelapseInterval(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getVideoTimelapseInterval", NULL));
+	}
+
+	inline Variant getPhotoBurstRate(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getPhotoBurstRate", NULL));
+	}
+
+	inline Variant getPhotoEffect(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getPhotoEffect", NULL));
+	}
+
+	inline Variant getPhotoExposure(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getPhotoExposure", NULL));
+	}
+
+	inline Variant getPhotoResolution(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getPhotoResolution", NULL));
+	}
+
+	inline Variant getPhotoTimelapseInterval(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getPhotoTimelapseInterval", NULL));
+	}
+
+	inline Variant getPhotoWhitebalance(){
+		return convertResult(PyObject_CallMethod(pInstance, (char*)"getPhotoWhitebalance", NULL));
+	}
 };
 
 }
