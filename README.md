@@ -1,6 +1,9 @@
-v360
-====
+V360 Remote Control
+===================
 This module allows you to remote control the VSN Mobil V.360° Camera.
+The remote control is written in Python but the interface is also available for C++. After taking a look at the examples folder the available methods should be self-explanatory.
+
+Although the remote control is already working, be aware that the code is still in an early stage.
 
 Requirements
 ------------
@@ -27,7 +30,3 @@ Open a terminal and execute the following commands (Ubuntu):
 Open a terminal and execute the following commands (Ubuntu):
 
     $ ./run_camera.py
-
-Work in progress
-----------------
-While the python version of the remote control is already working, the C++ wrapper is still in progress.
