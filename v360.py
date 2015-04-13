@@ -399,6 +399,17 @@ class Remote:
 
 		return True
 
+	def takePicture(self):
+		""" Take a picture (make sure to call setMode(0) before) """
+		if not self.requireToken():
+			return False
+
+		if self.sendJSON('https://'+self.camera_ip+'/operation/SHUBUT',{"token": self.token}) is None:
+			return False
+
+		return True
+		
+
 	def stopVideo(self):
 		return self.setStream(False)
 

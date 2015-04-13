@@ -23,7 +23,7 @@ if cam.connect(pin):
 	print('Stop video', cam.stopVideo())
 	cam.disconnect()
 
-	print('Now reconnect, play a video with sepia effect for another 30 seconds and turn off.')
+	print('Now reconnect (just for demonstration), play a video with sepia effect for another 30 seconds and turn off.')
 	cam.verbose = False
 	if cam.connect(pin):
 		print('Battery %s%%' % cam.getBattery())
